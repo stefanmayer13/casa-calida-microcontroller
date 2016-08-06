@@ -4,7 +4,7 @@
 //#define DEBUG
 #define PORT 80
 
-unsigned long MAX_WATER_TIME = 1200000UL; //(30 * 60 * 1000); 30min
+unsigned long MAX_WATER_TIME = 1200000UL; //(20 * 60 * 1000); 20min
 unsigned long WIFI_RETRY_PERIOD = 15000UL; //(15 * 1000); 15sec
 
 #define LED_PIN 13
@@ -566,7 +566,7 @@ void JSONHeader() {
 void returnJSONData() {
   const __FlashStringHelper* one = F("1");
   const __FlashStringHelper* zero = F("0");
-  HTMLSendPROGMEM(F("{active:"));
+  HTMLSendPROGMEM(F("{\"active\":"));
   switch (waterMode)  {
     case WATER_ON:
       HTMLSendPROGMEM(one);
@@ -575,32 +575,32 @@ void returnJSONData() {
       HTMLSendPROGMEM(zero);
       break;
   }
-  HTMLSendPROGMEM(F(",lastRun:\""));
+  HTMLSendPROGMEM(F(",\"lastRun\":\""));
   String lastMonthFiller = lastMonth < 10 ? "0" : "";
   String lastDayFiller = lastDay < 10 ? "0" : "";
   String lastHourFiller = lastHour < 10 ? "0" : "";
   String lastMinuteFiller = lastMinute < 10 ? "0" : "";
   HTMLSendVar(String(lastYear)+"-"+lastMonthFiller+lastMonth+"-"+lastDayFiller+lastDay+" "+lastHourFiller+lastHour+":"+lastMinuteFiller+lastMinute);
   
-  HTMLSendPROGMEM(F("\",dailyTime:\""));
+  HTMLSendPROGMEM(F("\",\"dailyTime\":\""));
   String scheduleHourFiller = scheduleHour < 10 ? "0" : "";
   String scheduleMinuteFiller = scheduleMinute < 10 ? "0" : "";
   HTMLSendVar(String(scheduleHourFiller)+scheduleHour+":"+scheduleMinuteFiller+scheduleMinute);
     
-  HTMLSendPROGMEM(F("\",scheduleActive:"));
+  HTMLSendPROGMEM(F("\",\"scheduleActive\":"));
   HTMLSendPROGMEM(scheduleActive?one:zero);
-  HTMLSendPROGMEM(F(",scheduleSkip:"));
+  HTMLSendPROGMEM(F(",\"scheduleSkip\":"));
   HTMLSendPROGMEM(scheduleSkip?one:zero);
 
-  HTMLSendPROGMEM(F(",time:\""));
+  HTMLSendPROGMEM(F(",\"time\":\""));
   String monthFiller = month < 10 ? "0" : "";
   String dayFiller = day < 10 ? "0" : "";
   String hourFiller = hour < 10 ? "0" : "";
   String minuteFiller = minute < 10 ? "0" : "";
   HTMLSendVar(String(year)+"-"+monthFiller+month+"-"+dayFiller+day+" "+hourFiller+hour+":"+minuteFiller+minute);
 
-  HTMLSendPROGMEM(F(",wifi_error_state:"));
-  HTMLSendPROGMEM(WIFISetupError);
+  HTMLSendPROGMEM(F("\",\"wifi_error_state\":"));
+  HTMLSendInt(WIFISetupError);
   
   HTMLSendPROGMEM(F("}\n"));
 }
