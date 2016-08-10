@@ -566,7 +566,7 @@ void JSONHeader() {
 void returnJSONData() {
   const __FlashStringHelper* one = F("1");
   const __FlashStringHelper* zero = F("0");
-  HTMLSendPROGMEM(F("{\"active\":"));
+  HTMLSendPROGMEM(F("{\"id\":1,\"active\":"));
   switch (waterMode)  {
     case WATER_ON:
       HTMLSendPROGMEM(one);
