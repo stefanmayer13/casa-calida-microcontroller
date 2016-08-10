@@ -1,4 +1,5 @@
 #include <avr/pgmspace.h>
+#include <EEPROM.h>
 
 // CONFIG BEGIN
 //#define DEBUG
@@ -145,11 +146,13 @@ void handleRequest() {
   
       if (strncmp(buffer_pointer, "?WATER=", 7) == 0) {
         buffer_pointer += 7;
+        delay(50);
         if (strncmp(buffer_pointer, "1", 1) == 0) {
           setWater(WATER_ON);
         } else if (strncmp(buffer_pointer, "0", 1) == 0) {
           setWater(WATER_OFF);
         }
+        delay(50);
         buffer_pointer += 1;
       } else if (strncmp(buffer_pointer, "daily?time=", 11) == 0) {
         buffer_pointer += 11;
@@ -161,8 +164,12 @@ void handleRequest() {
         minuteStr += buffer_pointer[0];
         minuteStr += buffer_pointer[1];
         buffer_pointer+=2;
-        scheduleHour = hourStr.toInt();
-        scheduleMinute = minuteStr.toInt();
+        if (scheduleHour != hourStr.toInt() && scheduleMinute !== minuteStr.toInt()) {
+          scheduleHour = hourStr.toInt();
+          scheduleMinute = minuteStr.toInt();
+          EEPROM.write(0, scheduleHour);
+          EEPROM.write(1, scheduleMinute);
+        }
         scheduleActive = true;
       } else if (strncmp(buffer_pointer, "nodaily", 7) == 0) {
         buffer_pointer += 7;
@@ -198,6 +205,10 @@ void handleRequest() {
         minuteStr += buffer_pointer[0];
         minuteStr += buffer_pointer[1];
         buffer_pointer+=2;
+        if (year == 0) {
+          scheduleHour = EEPROM.read(0);
+          scheduleMinute = EEPROM.read(1);
+        }
         year = yearStr.toInt();
         month = monthStr.toInt();
         day = dayStr.toInt();
