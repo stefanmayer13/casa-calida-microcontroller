@@ -54,6 +54,7 @@ unsigned long lastWifiRetry = 0;
 int year = 2016, month = 1, day = 1, hour = 0, minute = 0;
 int lastYear = 0, lastMonth = 0, lastDay = 0, lastHour = 0, lastMinute = 0;
 unsigned long milliseconds = 0UL;
+bool timeSet = false;
 
 // Schedule
 int scheduleHour, scheduleMinute;
@@ -63,14 +64,14 @@ bool scheduleSkip = false;
 // Functions
 int setupWIFI();
 void recvBufferClear();
-void waterHandling();
+void waterHandling(bool activate);
 bool clockHandling();
 void setWater(int value);
 void setLed(int value);
 void handleRequest();
-void webReply(int WIFI_Cannel);
+void webReply(int WIFI_Cannel, bool json, bool changeWater, bool newWaterMode);
 void HTMLPageHeader();
-void showHTMLPage();
+void showHTMLPage(bool changeWater, bool newWaterMode);
 void JSONHeader();
 void returnJSONData();
 void HTMLSend(char * c);
@@ -94,7 +95,7 @@ void setup() {
 void loop() {
   bool timeChanged = clockHandling();
   if (timeChanged) {
-    waterHandling();
+    waterHandling(false);
   }
   
   // WIFI setup
@@ -125,6 +126,8 @@ void handleRequest() {
   char *buffer_pointer;
   byte len;
   bool json;
+  bool changeWater = false;
+  bool newWaterMode = WATER_OFF;
   
   WIFI_Cannel = WIFI_Serial.parseInt();
   WIFI_Serial.findUntil(",", "\r");
@@ -146,13 +149,15 @@ void handleRequest() {
   
       if (strncmp(buffer_pointer, "?WATER=", 7) == 0) {
         buffer_pointer += 7;
-        delay(50);
         if (strncmp(buffer_pointer, "1", 1) == 0) {
-          setWater(WATER_ON);
+          newWaterMode = WATER_ON;
+          changeWater = true;
+          //setWater(WATER_ON);
         } else if (strncmp(buffer_pointer, "0", 1) == 0) {
-          setWater(WATER_OFF);
+          newWaterMode = WATER_OFF;
+          changeWater = true;
+          //setWater(WATER_OFF);
         }
-        delay(50);
         buffer_pointer += 1;
       } else if (strncmp(buffer_pointer, "daily?time=", 11) == 0) {
         buffer_pointer += 11;
@@ -164,11 +169,12 @@ void handleRequest() {
         minuteStr += buffer_pointer[0];
         minuteStr += buffer_pointer[1];
         buffer_pointer+=2;
-        if (scheduleHour != hourStr.toInt() && scheduleMinute !== minuteStr.toInt()) {
+        if (scheduleHour != hourStr.toInt() || scheduleMinute != minuteStr.toInt()) {
           scheduleHour = hourStr.toInt();
           scheduleMinute = minuteStr.toInt();
           EEPROM.write(0, scheduleHour);
           EEPROM.write(1, scheduleMinute);
+          timeSet = true;
         }
         scheduleActive = true;
       } else if (strncmp(buffer_pointer, "nodaily", 7) == 0) {
@@ -205,9 +211,13 @@ void handleRequest() {
         minuteStr += buffer_pointer[0];
         minuteStr += buffer_pointer[1];
         buffer_pointer+=2;
-        if (year == 0) {
+        if (!timeSet) {
           scheduleHour = EEPROM.read(0);
           scheduleMinute = EEPROM.read(1);
+          timeSet = true;
+        }
+        if (scheduleHour == hour && scheduleMinute > minute && scheduleMinute <= minuteStr.toInt()) {
+          waterHandling(true);
         }
         year = yearStr.toInt();
         month = monthStr.toInt();
@@ -226,10 +236,14 @@ void handleRequest() {
         len = WIFI_Serial.readBytesUntil(13, WIFI_Host, 23);
         WIFI_Host[len] = 0;
       }
-      webReply(WIFI_Cannel, json);
+      webReply(WIFI_Cannel, json, changeWater, newWaterMode);
     }
   }
   recvBufferClear();
+  if (changeWater) {
+    delay(50);
+    setWater(newWaterMode);
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -364,8 +378,8 @@ int setupWIFI() {
   return WIFI_ERROR_NONE;
 }
 
-void waterHandling() {
-  if (scheduleActive && scheduleHour == hour && scheduleMinute == minute) {
+void waterHandling(bool activate) {
+  if (activate || (scheduleActive && scheduleHour == hour && scheduleMinute == minute)) {
     if (!scheduleSkip) {
       setWater(WATER_ON);
     } else {
@@ -432,12 +446,12 @@ void setLed(int value) {
   digitalWrite(LED_PIN, value);
 }
 
-void webReply(int WIFICannel, bool json) {
+void webReply(int WIFICannel, bool json, bool changeWater, bool newWaterMode) {
   HTMLSendeMode = HTML_SENDE_MODE_PREPARE;
 
   HTMLTempLength = 0;
   if (!json) {
-    showHTMLPage();
+    showHTMLPage(changeWater, newWaterMode);
   } else {
     returnJSONData();
   }
@@ -463,7 +477,7 @@ void webReply(int WIFICannel, bool json) {
   HTMLSendeMode = HTML_SENDE_MODE_SEND;
   if (!json) {
     HTMLPageHeader();
-    showHTMLPage();
+    showHTMLPage(changeWater, newWaterMode);
   } else {
     JSONHeader();
     returnJSONData();
@@ -482,11 +496,15 @@ void HTMLPageHeader() {
 
 //---------------------------------------------------------------------------
 
-void showHTMLPage() {
+void showHTMLPage(bool changeWater, bool newWaterMode) {
+  bool currentWaterMode = waterMode;
+  if (changeWater) {
+    currentWaterMode = newWaterMode;
+  }
   HTMLSendPROGMEM(F("<!DOCTYPE html><HTML><HEAD><title>Casa-Calida - Water Control</title><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></HEAD>"));
   HTMLSendPROGMEM(F("<BODY><h1>Welcome to Casa-Calida water control</h1>"));
   HTMLSendPROGMEM(F("<form action=\"/\" method=\"get\"><p>The sprinklers are currently <b>"));
-  switch (waterMode)  {
+  switch (currentWaterMode)  {
     case WATER_ON:
       HTMLSendPROGMEM(F("ON"));
       break;
@@ -509,7 +527,7 @@ void showHTMLPage() {
   
   HTMLSendPROGMEM(F(".</p><button style=\"font-size: 1em\">Refresh</button></form><br/>"));
   HTMLSendPROGMEM(F("<button style=\"font-size: 2em\"><a style=\"text-decoration: none;color: black;\" href=\"/?WATER="));
-  switch (waterMode)  {
+  switch (currentWaterMode)  {
     case WATER_ON:
       HTMLSendPROGMEM(F("0"));
       break;
@@ -518,7 +536,7 @@ void showHTMLPage() {
       break;
   }
   HTMLSendPROGMEM(F("\">Turn Water "));
-  switch (waterMode)  {
+  switch (currentWaterMode)  {
     case WATER_ON:
       HTMLSendPROGMEM(F("OFF"));
       break;
