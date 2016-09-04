@@ -1,0 +1,4 @@
+.DS_Store
+test/error_printer
+test/error_printer.cpp
+*.o

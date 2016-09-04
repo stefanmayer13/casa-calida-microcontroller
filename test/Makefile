@@ -2,7 +2,8 @@ SHELL = /bin/bash
 VPATH = ..:.
 CXXC = g++ -Wall -I. -I..
 CC = g++ -c -I. -I..
-TESTGEN = /cygdrive/c/Users/Stefan/cxxtest-4.4/bin/cxxtestgen
+TESTGEN = libs/cxxtest-4.4/bin/cxxtestgen
+CFLAGS = -D_TEST_ -I../libraries/clock -Imocks -Ilibs/cxxtest-4.4 -Iarduino -std=c++11
 TARGETS = error_printer
 TESTS = *.h
  
@@ -21,17 +22,23 @@ run: error_printer
 error_printer.cpp: $(TESTS)
 	$(TESTGEN) -o $@ --error-printer $(TESTS)
  
-stdio_printer.cpp: $(TESTS) parserTest
+stdio_printer.cpp: $(TESTS) clockTest
 	$(TESTGEN) -o $@ --runner=StdioPrinter $(TESTS)
  
 tests.cpp: $(TESTS)
 	$(TESTGEN) -o $@ $(TESTS)
+
+mock.o:
+	$(CC) -c mocks/mock_arduino.cpp -o mock.o
+
+clock.o:
+	$(CC) $(CFLAGS) ../libraries/clock/clock.cpp -o clock.o
  
 error_printer.o: error_printer.cpp
-	$(CC) error_printer.cpp -o error_printer.o
+	$(CC) $(CFLAGS) error_printer.cpp -o error_printer.o
  
-error_printer: error_printer.o parser.o
-	$(CXXC) error_printer.o parser.o -o error_printer
+error_printer: error_printer.o clock.o mock.o
+	$(CXXC) error_printer.o clock.o mock.o -o error_printer
  
 %: %.cpp
 	$(CXXC) -o $@ $<

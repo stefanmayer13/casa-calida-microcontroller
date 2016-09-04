@@ -7,7 +7,7 @@
 #ifndef _TEST_
 #include <Arduino.h>
 #else
-#include "mocks/mock_arduino.h"
+#include "mock_arduino.h"
 #endif
 
 #include "clock.h"
