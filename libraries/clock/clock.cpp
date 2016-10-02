@@ -12,6 +12,10 @@
 
 #include "clock.h"
 
+Clock::Clock() {
+  milliseconds = millis();
+}
+
 bool Clock::tick() {
   if (millis() - milliseconds >= 60000UL) {
     milliseconds += 60000UL;

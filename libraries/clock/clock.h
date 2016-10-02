@@ -11,6 +11,7 @@ protected:
   void write_frame();
 
 public:
+  Clock();
   bool tick();
   void setTime(int new_year, int new_month, int new_day, int new_hour, int new_minute);
   int getMinute();
