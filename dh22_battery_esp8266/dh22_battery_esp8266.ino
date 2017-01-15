@@ -2,31 +2,39 @@
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
-#include <DHT.h>
+#include <SoftwareSerial.h>
+#include <WifiAuth.h>
 
-#define DHTTYPE DHT22
-#define DHTPIN  2
+#define ATTINYPIN  0 //GPIO0
+const int Rx = 2;
+const int Tx = 1;
+SoftwareSerial mySerial(Rx, Tx);
 
-const char* ssid     = "SSID";
-const char* password = "PASSWORD";
+const char* host = "192.168.1.35";
+const int httpPort = 8001;
+String id = "4";
 
 ESP8266WebServer server(80);
-DHT dht(DHTPIN, DHTTYPE, 11);
 
 float humidity, temp_c;
 String webString="";
 
-unsigned long previousMillis = 0;
-unsigned long interval = 2000UL;
+boolean updateSent = false;
+boolean updateInProgress = false;
+boolean waitingForShutdown = false;
 
 String updateIndex = "<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>";
 
 void setup() {
+  digitalWrite(ATTINYPIN, LOW);
+  pinMode(ATTINYPIN, OUTPUT);
+  
   // put your setup code here, to run once:
   Serial.begin(115200);
-  dht.begin();
+  mySerial.begin(9600);
 
-  WiFi.begin(ssid, password);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WifiAuth::ssid, WifiAuth::password);
   Serial.print("\n\r \n\rWorking to connect");
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -34,29 +42,21 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("");
-  Serial.println("DHT Temperature Reading Server");
+  Serial.println("DHT Temperature Reading Sensors");
   Serial.print("Connected to ");
-  Serial.println(ssid);
+  Serial.println(WifiAuth::ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
-  server.on("/", [](){
-    getdata();
-    webString="<!DOCTYPE><html><head><title>CasaCalida - Temperature</title></head><body><p>Temperature: "+String((int)temp_c)+"&deg;C<br/>Humidity: "+String((int)humidity)+"%</body></html>";
-    server.send(200, "text/html", webString);
-  });
-
-  server.on("/api/", [](){
-    getdata();
-    webString="{\"id\":2,\"type\":\"casa-calida-temperature\",\"name\":\"Temperature and Humidity Sensor\",\"temperature\":" + String((int)temp_c) + ",\"humidity\":" + String((int)humidity) + "}";
-    server.send(200, "application/json", webString);
-  });
-
   server.on("/update", HTTP_GET, [](){
+    updateInProgress = true;
+    digitalWrite(ATTINYPIN, LOW);
     server.sendHeader("Connection", "close");
     server.send(200, "text/html", updateIndex);
   });
   server.on("/update", HTTP_POST, [](){
+    updateInProgress = true;
+    digitalWrite(ATTINYPIN, LOW);
     server.sendHeader("Connection", "close");
     server.send(200, "text/plain", (Update.hasError())?"FAIL":"OK");
     ESP.restart();
@@ -91,21 +91,53 @@ void setup() {
 
 void loop() {
   server.handleClient();
-}
-
-void getdata() {
-  unsigned long currentMillis = millis();
- 
-  if(currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;   
- 
-    humidity = dht.readHumidity();
-    temp_c = dht.readTemperature();
-
-    if (isnan(humidity) || isnan(temp_c)) {
-      Serial.println("Failed to read from DHT sensor!");
+  while(mySerial.available() > 0)
+  {
+    String line = mySerial.readStringUntil('\r');
+    Serial.print(line);
+  }
+  if(!waitingForShutdown) {
+        
+    Serial.print("connecting to ");
+    Serial.println(host);
+        
+    WiFiClient client;
+    if (!client.connect(host, httpPort)) {
+      Serial.println("connection failed");
       return;
     }
+    /*
+    String url = "/?id=";
+    url += id;
+    url += "&type=casa-calida-temperature-battery";
+    url += "&name=Temperature%20and%20Humidity%20Sensor%20(Battery)";
+    url += "&temperature=";
+    url += temp_c;
+    url += "&humidity=";
+    url += humidity;
+    
+    Serial.print("Requesting URL: ");
+    Serial.println(url);
+    client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                "Host: " + host + "\r\n" + 
+                "Connection: close\r\n\r\n");
+    updateSent = true;
+    unsigned long timeout = millis();
+    while (client.available() == 0) {
+      if (millis() - timeout > 5000) {
+        Serial.println(">>> Client Timeout !");
+        client.stop();
+        updateSent = false;
+        break;
+      }
+    }
+    while(client.available()){
+      String line = client.readStringUntil('\r');
+      Serial.print(line);
+    }
+    */
+    Serial.println("Ok to turn off");
+    digitalWrite(ATTINYPIN, HIGH);
+    waitingForShutdown = true;
   }
 }
-

@@ -8,8 +8,8 @@
 #define DSPIN 4
 #define REQUIRESALARMS false
 
-const char* ssid     = "home4123";
-const char* password = "kiketommy123";
+const char* ssid     = "SSID";
+const char* password = "PASSWORD";
 
 ESP8266WebServer server(80);
 OneWire oneWire(DSPIN);

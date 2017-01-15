@@ -10,8 +10,8 @@
 #define TEMP_PIN 4
 
 const char* host = "casa-calida-watercontrol";
-const char* ssid = "home4123";
-const char* password = "kiketommy123";
+const char* ssid = "SSID";
+const char* password = "PASSWORD";
 unsigned long MAX_WATER_TIME = 600000UL; //(10 * 60 * 1000); 10min
 
 String html1 = "<!DOCTYPE html>\r\n<html>\r\n\
