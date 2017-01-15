@@ -26,7 +26,7 @@ dht DHT;
 
 ISR (WDT_vect) 
 {
-  mySerial.println("INTERRUPT!");
+  //mySerial.println("INTERRUPT!");
   //wdt_disable();  // disable watchdog
 }
 
@@ -50,67 +50,65 @@ void setup() {
   pinMode(ESPPIN, INPUT);
   pinMode(POWERPIN, OUTPUT);
   mySerial.begin( 9600 );
-  mySerial.println("Starting");
+  //mySerial.println("Starting");
 }
 
 void loop() {
   if(!active) {
-    mySerial.println("NOT ACTIVE");
     int chk = DHT.read22(DHT22PIN);
     switch (chk)
     {
       case DHTLIB_OK:
-          mySerial.print("OK,\t");
+          //Everything fine
           break;
       case DHTLIB_ERROR_CHECKSUM:
-          mySerial.print("Checksum error,\t");
+          mySerial.print("Checksum error,\r");
           break;
       case DHTLIB_ERROR_TIMEOUT:
-          mySerial.print("Time out error,\t");
+          mySerial.print("Time out error,\r");
           break;
       case DHTLIB_ERROR_CONNECT:
-          mySerial.print("Connect error,\t");
+          mySerial.print("Connect error,\r");
           break;
       case DHTLIB_ERROR_ACK_L:
-          mySerial.print("Ack Low error,\t");
+          mySerial.print("Ack Low error,\r");
           break;
       case DHTLIB_ERROR_ACK_H:
-          mySerial.print("Ack High error,\t");
+          mySerial.print("Ack High error,\r");
           break;
       default:
-          mySerial.print("Unknown error,\t");
+          mySerial.print("Unknown error,\r");
           break;
     }
     if(chk == DHTLIB_OK) {
       h = DHT.humidity;
       t = DHT.temperature;
-      mySerial.print("Humidity: ");
+      mySerial.print("Humidity:");
       mySerial.println(h);
-      mySerial.print("Temperature: ");
+      mySerial.print("Temperature:");
       mySerial.println(t);
       battery = 3.3/1023.0*float(analogRead(ADPIN));
-      mySerial.print("Battery: ");
+      mySerial.print("Battery:");
       mySerial.println(battery);
       if(abs(h-h_prev) >= 0.5 || abs(t-t_prev) >= 0.5) {
-        mySerial.println("Turning Wifi On");
+        //mySerial.println("Turning Wifi On");
         turnOn();
         unsigned long currentMillis = millis();
         startMillis = currentMillis;
         delay(500);
       } else {
-        mySerial.println("Going to sleep");
+        //mySerial.println("Going to sleep");
         goToSleep ();
       }
     } else {
-      mySerial.println("Going to sleep");
+      //mySerial.println("Going to sleep");
       goToSleep ();
     }
   } else {
-    mySerial.println("ACTIVE");
     unsigned long currentMillis = millis();
     if(currentMillis - startMillis >= maxOn) {
       digitalWrite(POWERPIN, HIGH);
-      mySerial.println("Turning Wifi off beacuse of max time");
+      //mySerial.println("Turning Wifi off beacuse of max time");
       turnOff();
     } else {
       boolean val = digitalRead(ESPPIN);
@@ -120,7 +118,7 @@ void loop() {
         if (val == HIGH) {
           h_prev = h;
           t_prev = t;
-          mySerial.println("Turning Wifi off as requested");
+          //mySerial.println("Turning Wifi off as requested");
           turnOff();
         }
       }
@@ -146,12 +144,10 @@ void goToSleep ()
 
 void turnOn() {
   digitalWrite(POWERPIN, HIGH);
-  mySerial.println("Power On");
   active = true;
 }
 
 void turnOff() {
   digitalWrite(POWERPIN, LOW);
-  mySerial.println("Power Off");
   active = false;
 }

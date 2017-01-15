@@ -16,9 +16,10 @@ String id = "4";
 
 ESP8266WebServer server(80);
 
-float humidity, temp_c;
+float humidity, temp_c, battery;
 String webString="";
 
+boolean dataRetrieved = false;
 boolean updateSent = false;
 boolean updateInProgress = false;
 boolean waitingForShutdown = false;
@@ -94,10 +95,16 @@ void loop() {
   while(mySerial.available() > 0)
   {
     String line = mySerial.readStringUntil('\r');
-    Serial.print(line);
+    if(line.indexOf("Humidity") == 0) {
+      humidity = line.substring(9).toFloat();
+    } else if(line.indexOf("Temperature") == 1) {
+      temp_c = line.substring(13).toFloat();
+    } else if(line.indexOf("Battery") == 1) {
+      battery = line.substring(9).toFloat();
+      dataRetrieved = true;
+    }
   }
-  if(!waitingForShutdown) {
-        
+  if(!waitingForShutdown && dataRetrieved) {
     Serial.print("connecting to ");
     Serial.println(host);
         
@@ -106,7 +113,7 @@ void loop() {
       Serial.println("connection failed");
       return;
     }
-    /*
+    
     String url = "/?id=";
     url += id;
     url += "&type=casa-calida-temperature-battery";
@@ -115,6 +122,8 @@ void loop() {
     url += temp_c;
     url += "&humidity=";
     url += humidity;
+    url += "&battery=";
+    url += battery;
     
     Serial.print("Requesting URL: ");
     Serial.println(url);
@@ -135,7 +144,7 @@ void loop() {
       String line = client.readStringUntil('\r');
       Serial.print(line);
     }
-    */
+
     Serial.println("Ok to turn off");
     digitalWrite(ATTINYPIN, HIGH);
     waitingForShutdown = true;
