@@ -1,5 +1,7 @@
 .DS_Store
-test/error_printer
-test/error_printer.cpp
+test/runtests
 *.o
 __pycache__
+.build
+.deos
+*.dep

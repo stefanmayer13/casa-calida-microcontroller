@@ -4,6 +4,7 @@
 #include <WiFiUdp.h>
 #include <SoftwareSerial.h>
 #include <WifiAuth.h>
+#include "cctemp.h"
 
 #define ATTINYPIN  0 //GPIO0
 const int Rx = 2;
@@ -15,6 +16,7 @@ const int httpPort = 8001;
 String id = "4";
 
 ESP8266WebServer server(80);
+cctemp temp();
 
 float humidity, temp_c, battery;
 String webString="";
@@ -95,6 +97,8 @@ void loop() {
   while(mySerial.available() > 0)
   {
     String line = mySerial.readStringUntil('\r');
+    dataRetrieved = temp.parseData(line);
+    /*
     if(line.indexOf("Humidity") == 0) {
       humidity = line.substring(9).toFloat();
     } else if(line.indexOf("Temperature") == 1) {
@@ -103,6 +107,7 @@ void loop() {
       battery = line.substring(9).toFloat();
       dataRetrieved = true;
     }
+    */
   }
   if(!waitingForShutdown && dataRetrieved) {
     Serial.print("connecting to ");
